@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
+import { HomePage } from './components/HomePage';
 import { JobInput } from './components/JobInput';
 import { LoadingSkeleton } from './components/LoadingSkeleton';
 import { ResultCard } from './components/ResultCard';
@@ -13,9 +14,13 @@ import { ErrorMessage } from './components/ErrorMessage';
 import { Footer } from './components/Footer';
 import { SCAM_JOB_EXAMPLE, LEGIT_JOB_EXAMPLE } from './data/sampleJobs';
 import { createSampleScamPoster } from './data/samplePoster';
-import type { JobAnalysisResult, ThemeMode, UploadedImage } from './types';
+import { ArrowLeft } from 'lucide-react';
+import type { JobAnalysisResult, ThemeMode, UploadedImage, ActiveTab } from './types';
 
 export default function App() {
+  // Navigation tab: 'home' or 'detector'
+  const [activeTab, setActiveTab] = useState<ActiveTab>('home');
+
   // Theme state: initialized from system preference and kept in-memory (no localStorage)
   const [theme, setTheme] = useState<ThemeMode>(() => {
     if (
@@ -119,85 +124,155 @@ export default function App() {
     setImage(null);
   };
 
+  const navigateToScanner = () => {
+    setActiveTab('detector');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLoadScamText = () => {
+    setJobText(SCAM_JOB_EXAMPLE);
+    setImage(null);
+    setValidationError(null);
+    setApiError(null);
+    setAnalysisResult(null);
+    navigateToScanner();
+  };
+
+  const handleLoadScamPoster = () => {
+    setImage(createSampleScamPoster());
+    setJobText('');
+    setValidationError(null);
+    setApiError(null);
+    setAnalysisResult(null);
+    navigateToScanner();
+  };
+
+  const handleLoadLegitJob = () => {
+    setJobText(LEGIT_JOB_EXAMPLE);
+    setImage(null);
+    setValidationError(null);
+    setApiError(null);
+    setAnalysisResult(null);
+    navigateToScanner();
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-100/60 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
-      <Header theme={theme} onToggleTheme={toggleTheme} />
+      <Header
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
 
       <main className="flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        {/* Main Job Input Section */}
-        <section aria-labelledby="job-input-heading">
-          <h2 id="job-input-heading" className="sr-only">
-            Analyze Job Advertisement
-          </h2>
-          <JobInput
-            jobText={jobText}
-            onChangeText={(text) => {
-              setJobText(text);
-              if (apiError) setApiError(null);
-            }}
-            image={image}
-            onImageChange={(newImg) => {
-              setImage(newImg);
-              if (apiError) setApiError(null);
-            }}
-            onSubmit={handleAnalyze}
-            isLoading={isLoading}
-            validationError={validationError}
-            onClearValidation={() => setValidationError(null)}
+        {activeTab === 'home' ? (
+          <HomePage
+            onStartScanner={navigateToScanner}
+            onLoadScamText={handleLoadScamText}
+            onLoadScamPoster={handleLoadScamPoster}
+            onLoadLegitJob={handleLoadLegitJob}
           />
-        </section>
+        ) : (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Back button to Home */}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('home');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to Overview &amp; Guide</span>
+              </button>
 
-        {/* Dynamic Analysis Area with aria-live for screen readers */}
-        <section
-          ref={resultsRef}
-          id="analysis-output-section"
-          aria-live="polite"
-          aria-atomic="true"
-          className="w-full space-y-6"
-        >
-          {/* Inline Error State */}
-          {apiError && (
-            <ErrorMessage
-              message={apiError}
-              onRetry={handleAnalyze}
-            />
-          )}
+              <span className="text-2xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                AI Detector
+              </span>
+            </div>
 
-          {/* Loading Skeleton */}
-          {isLoading && <LoadingSkeleton />}
+            {/* Main Job Input Section */}
+            <section aria-labelledby="job-input-heading">
+              <h2 id="job-input-heading" className="sr-only">
+                Analyze Job Advertisement
+              </h2>
+              <JobInput
+                jobText={jobText}
+                onChangeText={(text) => {
+                  setJobText(text);
+                  if (apiError) setApiError(null);
+                }}
+                image={image}
+                onImageChange={(newImg) => {
+                  setImage(newImg);
+                  if (apiError) setApiError(null);
+                }}
+                onSubmit={handleAnalyze}
+                isLoading={isLoading}
+                validationError={validationError}
+                onClearValidation={() => setValidationError(null)}
+              />
+            </section>
 
-          {/* Result Card when complete */}
-          {!isLoading && analysisResult && (
-            <ResultCard
-              result={analysisResult}
-              analyzedImage={analyzedImage}
-              onReset={handleReset}
-            />
-          )}
+            {/* Dynamic Analysis Area with aria-live for screen readers */}
+            <section
+              ref={resultsRef}
+              id="analysis-output-section"
+              aria-live="polite"
+              aria-atomic="true"
+              className="w-full space-y-6"
+            >
+              {/* Inline Error State */}
+              {apiError && (
+                <ErrorMessage
+                  message={apiError}
+                  onRetry={handleAnalyze}
+                />
+              )}
 
-          {/* Empty state when no analysis is active */}
-          {!isLoading && !analysisResult && !apiError && (
-            <EmptyState
-              onSelectScam={() => {
-                setJobText(SCAM_JOB_EXAMPLE);
-                setImage(null);
-                setValidationError(null);
-                setApiError(null);
-              }}
-              onSelectLegit={() => {
-                setJobText(LEGIT_JOB_EXAMPLE);
-                setImage(null);
-                setValidationError(null);
-                setApiError(null);
-              }}
-              onSelectSamplePoster={() => {
-                setImage(createSampleScamPoster());
-                setValidationError(null);
-                setApiError(null);
-              }}
-            />
-          )}
-        </section>
+              {/* Loading Skeleton */}
+              {isLoading && <LoadingSkeleton />}
+
+              {/* Result Card when complete */}
+              {!isLoading && analysisResult && (
+                <ResultCard
+                  result={analysisResult}
+                  analyzedImage={analyzedImage}
+                  onReset={handleReset}
+                />
+              )}
+
+              {/* Empty state when no analysis is active */}
+              {!isLoading && !analysisResult && !apiError && (
+                <EmptyState
+                  onSelectScam={() => {
+                    setJobText(SCAM_JOB_EXAMPLE);
+                    setImage(null);
+                    setValidationError(null);
+                    setApiError(null);
+                  }}
+                  onSelectLegit={() => {
+                    setJobText(LEGIT_JOB_EXAMPLE);
+                    setImage(null);
+                    setValidationError(null);
+                    setApiError(null);
+                  }}
+                  onSelectSamplePoster={() => {
+                    setImage(createSampleScamPoster());
+                    setValidationError(null);
+                    setApiError(null);
+                  }}
+                />
+              )}
+            </section>
+          </div>
+        )}
       </main>
 
       <Footer />

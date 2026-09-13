@@ -21,3 +21,4 @@ export interface UploadedImage {
 }
 
 export type ThemeMode = 'light' | 'dark';
+export type ActiveTab = 'home' | 'detector';
