@@ -97,10 +97,43 @@ export default function App() {
         }),
       });
 
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      let data: any = null;
+
+      if (contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          console.warn('Could not parse response as JSON:', jsonErr);
+        }
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Server error occurred while analyzing the opportunity.');
+        if (data && data.error) {
+          throw new Error(data.error);
+        }
+
+        if (response.status === 404) {
+          throw new Error(
+            'The job analysis service endpoint was not found (404 Not Found). Please verify your deployed backend service is active and listening.'
+          );
+        }
+
+        if (response.status === 502 || response.status === 503 || response.status === 504) {
+          throw new Error(
+            `The analysis server is temporarily starting up (Status ${response.status}). Please wait 5-10 seconds and click Retry Analysis.`
+          );
+        }
+
+        throw new Error(
+          `Analysis request failed with status ${response.status} (${response.statusText || 'Error'}). Please retry.`
+        );
+      }
+
+      if (!data) {
+        throw new Error(
+          'Received an invalid response format from the server. Please wait a moment and try again.'
+        );
       }
 
       setAnalysisResult(data);
