@@ -1,0 +1,6 @@
+{
+  "name": "Job Ad Red Flag Detector",
+  "description": "Helps job seekers in Pakistan identify scam or exploitative job postings using AI analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
